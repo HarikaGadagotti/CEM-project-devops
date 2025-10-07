@@ -1,0 +1,73 @@
+pipeline {
+    agent none // No default agent
+
+    environment {
+        NODE_VERSION = '18'
+    }
+
+    stages {
+        stage('Checkout') {
+            agent { label 'win-agent-1' } // Agent 1
+            steps {
+                echo "Checking out code on win-agent-1..."
+                checkout scm
+            }
+        }
+
+        stage('Install Dependencies') {
+            agent { label 'win-agent-2' } // Agent 2
+            steps {
+                echo "Installing dependencies on win-agent-2..."
+                bat 'node -v'
+                bat 'npm -v'
+                bat 'npm install'
+            }
+        }
+
+        stage('Run Tests') {
+            agent { label 'win-agent-2' }
+            steps {
+                echo "Running tests on win-agent-2..."
+                bat 'npm test -- --watchAll=false'
+            }
+        }
+
+        stage('Build') {
+            agent { label 'win-agent-2' }
+            steps {
+                echo "Building React project on win-agent-2..."
+                bat 'npm run build'
+            }
+        }
+
+        stage('Archive Build') {
+            agent { label 'win-agent-1' }
+            steps {
+                echo "Archiving build artifacts on win-agent-1..."
+                archiveArtifacts artifacts: 'build\\**', fingerprint: true
+            }
+        }
+
+        stage('Deploy') {
+            agent { label 'win-agent-2' }
+            steps {
+                echo "Deploying build from win-agent-2..."
+                // Example deployment (adjust for Windows)
+                // bat 'xcopy build\\* \\\\server\\path\\to\\deploy /s /y'
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "Cleaning workspace on both agents..."
+            cleanWs()
+        }
+        success {
+            echo "Pipeline completed successfully!"
+        }
+        failure {
+            echo "Pipeline failed!"
+        }
+    }
+}
