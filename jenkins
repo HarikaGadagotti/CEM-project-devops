@@ -7,7 +7,7 @@ pipeline {
 
     stages {
         stage('Checkout') {
-            agent { label 'win-agent-1' } // Agent 1
+            agent { label 'win-agent1' } // Agent 1
             steps {
                 echo "Checking out code on win-agent-1..."
                 checkout scm
@@ -41,7 +41,7 @@ pipeline {
         }
 
         stage('Archive Build') {
-            agent { label 'win-agent-1' }
+            agent { label 'win-agent1' }
             steps {
                 echo "Archiving build artifacts on win-agent-1..."
                 archiveArtifacts artifacts: 'build\\**', fingerprint: true
