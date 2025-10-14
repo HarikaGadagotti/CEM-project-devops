@@ -6,11 +6,13 @@ pipeline {
     }
     stages {
         stage('Checkout') {
-            agent { label 'built-in' }
+            agent { label 'termux' } // Termux agent
             steps {
+                deleteDir() // clean workspace
                 checkout scm
             }
         }
+
         stage('Where am I (Controller)') {
             agent { label 'built-in' }
             steps {
@@ -19,47 +21,32 @@ pipeline {
                 echo "WORKSPACE = ${env.WORKSPACE}"
             }
         }
+
         stage('Install Dependencies') {
-            agent { label 'win' }
+            agent { label 'termux' } // Termux/Linux agent
             steps {
-                bat '''
-                echo Running on AGENT: %COMPUTERNAME%
-                if exist out rmdir /s /q build
+                sh '''
+                echo "Running on AGENT: $(hostname)"
+                rm -rf build || true
                 npm ci
                 '''
             }
         }
+
         stage('Build & Test') {
-            agent { label 'win' }
+            agent { label 'termux' }
             steps {
-                script {
-                    bat 'npm run build'
-                }
+                sh 'npm run build'
             }
         }
+
         stage('Archive Artifacts') {
-            agent { label 'win' }
+            agent { label 'termux' }
             steps {
                 archiveArtifacts artifacts: "${VITE_BUILD_DIR}/**", fingerprint: true
                 echo "Vite build artifacts saved from ${VITE_BUILD_DIR}."
             }
         }
-        // stage('Deploy (Example)') {
-        //     agent { label 'win' }
-        //     steps {
-        //         script {
-        //             bat '''
-        //             git config --global user.name "AllurkarSushanth"
-        //             git config --global user.email "allurkarsushanth95@gmail.com"
-        //             npm run deploy
-        //             '''
-        //         }
-        //     }
-        //     post {
-        //         always {
-        //             cleanWs()
-        //         }
-        //     }
-        // }
-    }
+
+        }
 }
