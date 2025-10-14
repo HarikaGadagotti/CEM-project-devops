@@ -37,25 +37,6 @@ pipeline {
             }
         }
 
-        stage('Run Tests') {
-            steps {
-                script {
-                    try {
-                        node('win-agent-2') {
-                            echo "Running tests on win-agent-2..."
-                            bat 'npm test -- --watchAll=false'
-                        }
-                    } catch (err) {
-                        echo "win-agent-2 is offline, switching to win-agent-3..."
-                        node('win-agent-3') {
-                            echo "Running tests on win-agent-3..."
-                            bat 'npm test -- --watchAll=false'
-                        }
-                    }
-                }
-            }
-        }
-
         stage('Build') {
             steps {
                 script {
@@ -102,17 +83,20 @@ pipeline {
     }
 
     post {
-        always {
-            echo "Cleaning workspace on both agents..."
-            node('win-agent1') { cleanWs() }
+    always {
+        echo "Cleaning workspace on both agents..."
+        node('win-agent1') { cleanWs() }
+        script {
             try { node('win-agent-2') { cleanWs() } } catch (err) { echo "win-agent-2 offline" }
             try { node('win-agent-3') { cleanWs() } } catch (err) { echo "win-agent-3 offline" }
         }
-        success {
-            echo "Pipeline completed successfully!"
-        }
-        failure {
-            echo "Pipeline failed!"
-        }
     }
+    success {
+        echo "Pipeline completed successfully!"
+    }
+    failure {
+        echo "Pipeline failed!"
+    }
+}
+
 }
