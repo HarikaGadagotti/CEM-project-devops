@@ -1,102 +1,66 @@
 pipeline {
     agent none
-
+    options { timestamps(); timeout(time: 15, unit: 'MINUTES') }
     environment {
-        NODE_VERSION = '18'
+        VITE_BUILD_DIR = 'dist'
     }
-
     stages {
         stage('Checkout') {
-            agent { label 'win-agent1' }
+            agent { label 'built-in' }
             steps {
-                echo "Checking out code on win-agent-1..."
                 checkout scm
             }
         }
-
+        stage('Where am I (Controller)') {
+            agent { label 'built-in' }
+            steps {
+                echo 'Running on CONTROLLER'
+                echo "NODE = ${env.NODE_NAME}"
+                echo "WORKSPACE = ${env.WORKSPACE}"
+            }
+        }
         stage('Install Dependencies') {
+            agent { label 'win' }
+            steps {
+                bat '''
+                echo Running on AGENT: %COMPUTERNAME%
+                if exist out rmdir /s /q build
+                npm ci
+                '''
+            }
+        }
+        stage('Build & Test') {
+            agent { label 'win' }
             steps {
                 script {
-                    try {
-                        node('win-agent-2') {
-                            echo "Installing dependencies on win-agent-2..."
-                            bat 'node -v'
-                            bat 'npm -v'
-                            bat 'npm install'
-                        }
-                    } catch (err) {
-                        echo "win-agent-2 is offline, switching to win-agent-3..."
-                        node('win-agent-3') {
-                            echo "Installing dependencies on win-agent-3..."
-                            bat 'node -v'
-                            bat 'npm -v'
-                            bat 'npm install'
-                        }
-                    }
+                    bat 'npm run build'
                 }
             }
         }
-
-        stage('Build') {
+        stage('Archive Artifacts') {
+            agent { label 'win' }
             steps {
-                script {
-                    try {
-                        node('win-agent-2') {
-                            echo "Building React project on win-agent-2..."
-                            bat 'npm run build'
-                        }
-                    } catch (err) {
-                        echo "win-agent-2 is offline, switching to win-agent-3..."
-                        node('win-agent-3') {
-                            echo "Building React project on win-agent-3..."
-                            bat 'npm run build'
-                        }
-                    }
-                }
+                archiveArtifacts artifacts: "${VITE_BUILD_DIR}/**", fingerprint: true
+                echo "Vite build artifacts saved from ${VITE_BUILD_DIR}."
             }
         }
-
-        stage('Archive Build') {
-            agent { label 'win-agent1' }
-            steps {
-                echo "Archiving build artifacts on win-agent-1..."
-                archiveArtifacts artifacts: 'build\\**', fingerprint: true
-            }
-        }
-
-        stage('Deploy') {
-            steps {
-                script {
-                    try {
-                        node('win-agent-2') {
-                            echo "Deploying build from win-agent-2..."
-                        }
-                    } catch (err) {
-                        echo "win-agent-2 is offline, deploying from win-agent-3..."
-                        node('win-agent-3') {
-                            echo "Deploying build from win-agent-3..."
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    post {
-    always {
-        echo "Cleaning workspace on both agents..."
-        node('win-agent1') { cleanWs() }
-        script {
-            try { node('win-agent-2') { cleanWs() } } catch (err) { echo "win-agent-2 offline" }
-            try { node('win-agent-3') { cleanWs() } } catch (err) { echo "win-agent-3 offline" }
-        }
-    }
-    success {
-        echo "Pipeline completed successfully!"
-    }
-    failure {
-        echo "Pipeline failed!"
+        // stage('Deploy (Example)') {
+        //     agent { label 'win' }
+        //     steps {
+        //         script {
+        //             bat '''
+        //             git config --global user.name "AllurkarSushanth"
+        //             git config --global user.email "allurkarsushanth95@gmail.com"
+        //             npm run deploy
+        //             '''
+        //         }
+        //     }
+        //     post {
+        //         always {
+        //             cleanWs()
+        //         }
+        //     }
+        // }
     }
 }
-
-}
+//
