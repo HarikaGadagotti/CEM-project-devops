@@ -52,22 +52,26 @@ pipeline {
             agent { label 'win-agent-2' }
             steps {
                 echo "Deploying build from win-agent-2..."
-                // Example deployment (adjust for Windows)
-                // bat 'xcopy build\\* \\\\server\\path\\to\\deploy /s /y'
             }
         }
     }
 
     post {
-        always {
-            echo "Cleaning workspace on both agents..."
+    always {
+        echo "Cleaning workspace on both agents..."
+        node('win-agent1') {
             cleanWs()
         }
-        success {
-            echo "Pipeline completed successfully!"
-        }
-        failure {
-            echo "Pipeline failed!"
+        node('win-agent-2') {
+            cleanWs()
         }
     }
+    success {
+        echo "Pipeline completed successfully!"
+    }
+    failure {
+        echo "Pipeline failed!"
+    }
+}
+
 }
