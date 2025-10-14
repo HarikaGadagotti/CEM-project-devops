@@ -7,7 +7,7 @@ pipeline {
 
     stages {
         stage('Checkout') {
-            agent { label 'win-agent2' } // Agent 1
+            agent { label 'win-agent-2' } // Agent 1
             steps {
                 echo "Checking out code on win-agent-2..."
                 checkout scm
