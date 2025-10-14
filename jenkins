@@ -1,5 +1,5 @@
 pipeline {
-    agent none // No default agent
+    agent none
 
     environment {
         NODE_VERSION = '18'
@@ -7,7 +7,7 @@ pipeline {
 
     stages {
         stage('Checkout') {
-            agent { label 'win-agent1' } // Agent 1
+            agent { label 'win-agent1' }
             steps {
                 echo "Checking out code on win-agent-1..."
                 checkout scm
@@ -15,28 +15,63 @@ pipeline {
         }
 
         stage('Install Dependencies') {
-            agent { label 'win-agent-2' } // Agent 2
             steps {
-                echo "Installing dependencies on win-agent-2..."
-                bat 'node -v'
-                bat 'npm -v'
-                bat 'npm install'
+                script {
+                    try {
+                        node('win-agent-2') {
+                            echo "Installing dependencies on win-agent-2..."
+                            bat 'node -v'
+                            bat 'npm -v'
+                            bat 'npm install'
+                        }
+                    } catch (err) {
+                        echo "win-agent-2 is offline, switching to win-agent-3..."
+                        node('win-agent-3') {
+                            echo "Installing dependencies on win-agent-3..."
+                            bat 'node -v'
+                            bat 'npm -v'
+                            bat 'npm install'
+                        }
+                    }
+                }
             }
         }
 
         stage('Run Tests') {
-            agent { label 'win-agent-2' }
             steps {
-                echo "Running tests on win-agent-2..."
-                bat 'npm test -- --watchAll=false'
+                script {
+                    try {
+                        node('win-agent-2') {
+                            echo "Running tests on win-agent-2..."
+                            bat 'npm test -- --watchAll=false'
+                        }
+                    } catch (err) {
+                        echo "win-agent-2 is offline, switching to win-agent-3..."
+                        node('win-agent-3') {
+                            echo "Running tests on win-agent-3..."
+                            bat 'npm test -- --watchAll=false'
+                        }
+                    }
+                }
             }
         }
 
         stage('Build') {
-            agent { label 'win-agent-2' }
             steps {
-                echo "Building React project on win-agent-2..."
-                bat 'npm run build'
+                script {
+                    try {
+                        node('win-agent-2') {
+                            echo "Building React project on win-agent-2..."
+                            bat 'npm run build'
+                        }
+                    } catch (err) {
+                        echo "win-agent-2 is offline, switching to win-agent-3..."
+                        node('win-agent-3') {
+                            echo "Building React project on win-agent-3..."
+                            bat 'npm run build'
+                        }
+                    }
+                }
             }
         }
 
@@ -49,29 +84,35 @@ pipeline {
         }
 
         stage('Deploy') {
-            agent { label 'win-agent-2' }
             steps {
-                echo "Deploying build from win-agent-2..."
+                script {
+                    try {
+                        node('win-agent-2') {
+                            echo "Deploying build from win-agent-2..."
+                        }
+                    } catch (err) {
+                        echo "win-agent-2 is offline, deploying from win-agent-3..."
+                        node('win-agent-3') {
+                            echo "Deploying build from win-agent-3..."
+                        }
+                    }
+                }
             }
         }
     }
 
     post {
-    always {
-        echo "Cleaning workspace on both agents..."
-        node('win-agent1') {
-            cleanWs()
+        always {
+            echo "Cleaning workspace on both agents..."
+            node('win-agent1') { cleanWs() }
+            try { node('win-agent-2') { cleanWs() } } catch (err) { echo "win-agent-2 offline" }
+            try { node('win-agent-3') { cleanWs() } } catch (err) { echo "win-agent-3 offline" }
         }
-        node('win-agent-2') {
-            cleanWs()
+        success {
+            echo "Pipeline completed successfully!"
+        }
+        failure {
+            echo "Pipeline failed!"
         }
     }
-    success {
-        echo "Pipeline completed successfully!"
-    }
-    failure {
-        echo "Pipeline failed!"
-    }
-}
-
 }
