@@ -5,21 +5,21 @@ pipeline {
         VITE_BUILD_DIR = 'dist'
     }
     stages {
- stage('Checkout') {
-    agent { label 'termux' }
-    steps {
-        sh '''
-        echo "Cleaning workspace..."
-        rm -rf * .git || true
+        stage('Checkout') {
+            agent { label 'termux' }
+            steps {
+                sh '''
+                    echo "Cleaning workspace..."
+                    rm -rf * .git || true
 
-        echo "Cloning repository manually using Termux git..."
-        git clone https://github.com/HarikaGadagotti/CEM-project-devops.git .
+                    echo "Cloning repository manually using Termux git..."
+                    git clone https://github.com/HarikaGadagotti/CEM-project-devops.git .
 
-        echo "Repository cloned successfully."
-        '''
-    }
-}
-
+                    echo "Repository cloned successfully."
+                    ls -la
+                '''
+            }
+        }
 
         stage('Where am I (Controller)') {
             agent { label 'built-in' }
@@ -31,12 +31,13 @@ pipeline {
         }
 
         stage('Install Dependencies') {
-            agent { label 'termux' } // Termux/Linux agent
+            agent { label 'termux' }
             steps {
                 sh '''
-                echo "Running on AGENT: $(hostname)"
-                rm -rf build || true
-                npm ci
+                    echo "Running on AGENT: $(hostname)"
+                    echo "Current directory: $(pwd)"
+                    rm -rf build || true
+                    npm ci
                 '''
             }
         }
@@ -55,6 +56,5 @@ pipeline {
                 echo "Vite build artifacts saved from ${VITE_BUILD_DIR}."
             }
         }
-
-        }
+    }
 }
