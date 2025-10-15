@@ -5,20 +5,18 @@ pipeline {
         VITE_BUILD_DIR = 'dist'
     }
     stages {
-       stage('Checkout') {
+ stage('Checkout') {
     agent { label 'termux' }
     steps {
-        deleteDir()
-        checkout([
-            $class: 'GitSCM',
-            branches: [[name: '*/main']],
-            userRemoteConfigs: [[
-                url: 'https://github.com/HarikaGadagotti/CEM-project-devops.git',
-                credentialsId: ''
-            ]],
-            extensions: [],
-            gitTool: 'termux-git'
-        ])
+        sh '''
+        echo "Cleaning workspace..."
+        rm -rf * .git || true
+
+        echo "Cloning repository manually using Termux git..."
+        git clone https://github.com/HarikaGadagotti/CEM-project-devops.git .
+
+        echo "Repository cloned successfully."
+        '''
     }
 }
 
