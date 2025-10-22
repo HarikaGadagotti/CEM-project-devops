@@ -10,11 +10,19 @@ pipeline {
     stages {
         stage('Checkout') {
             agent { label 'termux' }
-            tools {
-                git 'git-linux'  // Use your configured Git tool name
-            }
             steps {
-                checkout scm  // This will now use the correct git command
+                sh '''
+                    echo "Cleaning workspace..."
+                    # Clean more thoroughly
+                    rm -rf ./* ./.* 2>/dev/null || true
+                    
+                    echo "Cloning repository using Termux git..."
+                    git clone https://github.com/HarikaGadagotti/CEM-project-devops.git .
+                    
+                    echo "Repository cloned successfully."
+                    echo "Contents:"
+                    ls -la
+                '''
             }
         }
 
@@ -24,7 +32,10 @@ pipeline {
                 sh '''
                     echo "Running on AGENT: $(hostname)"
                     echo "Current directory: $(pwd)"
-                    ls -la
+                    echo "Node version:"
+                    node --version || echo "Node not found"
+                    echo "NPM version:"
+                    npm --version || echo "NPM not found"
                     npm ci
                 '''
             }
