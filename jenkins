@@ -1,6 +1,9 @@
 pipeline {
     agent none
-    options { timestamps(); timeout(time: 15, unit: 'MINUTES') }
+    options { 
+        timestamps() 
+        timeout(time: 15, unit: 'MINUTES') 
+    }
     environment {
         VITE_BUILD_DIR = 'dist'
     }
@@ -10,23 +13,15 @@ pipeline {
             steps {
                 sh '''
                     echo "Cleaning workspace..."
-                    rm -rf * .git || true
-
-                    echo "Cloning repository manually using Termux git..."
+                    # More thorough cleanup
+                    find . -mindepth 1 -delete || true
+                    
+                    echo "Cloning repository..."
                     git clone https://github.com/HarikaGadagotti/CEM-project-devops.git .
-
+                    
                     echo "Repository cloned successfully."
                     ls -la
                 '''
-            }
-        }
-
-        stage('Where am I (Controller)') {
-            agent { label 'built-in' }
-            steps {
-                echo 'Running on CONTROLLER'
-                echo "NODE = ${env.NODE_NAME}"
-                echo "WORKSPACE = ${env.WORKSPACE}"
             }
         }
 
@@ -36,7 +31,8 @@ pipeline {
                 sh '''
                     echo "Running on AGENT: $(hostname)"
                     echo "Current directory: $(pwd)"
-                    rm -rf build || true
+                    echo "Contents:"
+                    ls -la
                     npm ci
                 '''
             }
